@@ -1,6 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
-import { Fragment, useState } from "react";
-import { addSkill, deleteSkill } from "../../../redux-tookit/slices/SkillSlice";
+import { Fragment } from "react";
+import { addSkill, controlModal, deleteSkill, editSkill, showModal } from "../../../redux-tookit/slices/SkillSlice";
 import { Form, Input, Modal, Space, Table } from "antd";
 import {
   EditFilled,
@@ -10,10 +10,9 @@ import {
 
 import "./skills.scss";
 const SkillsPage = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   const dispatch = useDispatch();
-  const { skills } = useSelector((state) => state.skill);
+  const { skills, isModalOpen, selected } = useSelector((state) => state.skill);
 
   const columns = [
     {
@@ -32,10 +31,16 @@ const SkillsPage = () => {
       key: "action",
       render: (_, row) => (
         <Space size="middle">
-          <button className="edit-btn">
+          <button
+            className="edit-btn"
+            onClick={() => dispatch(editSkill({id: row.id, form}))}
+          >
             <EditFilled />
           </button>
-          <button className="delete-btn" onClick={() => dispatch(deleteSkill(row.id))}>
+          <button
+            className="delete-btn"
+            onClick={() => dispatch(deleteSkill(row.id))}
+          >
             <DeleteFilled />
           </button>
         </Space>
@@ -43,9 +48,7 @@ const SkillsPage = () => {
     },
   ];
 
-  const showModal = () => {
-    setIsModalOpen(true);
-  };
+
   const handleOk = async () => {
     try {
       let values = await form.validateFields();
@@ -56,7 +59,7 @@ const SkillsPage = () => {
     }
   };
   const handleCancel = () => {
-    setIsModalOpen(false);
+    dispatch(controlModal())
   };
 
   return (
@@ -66,7 +69,7 @@ const SkillsPage = () => {
         title={() => (
           <div className="outlet">
             <h1>Skills </h1>
-            <button onClick={showModal}>
+            <button onClick={() => dispatch(showModal(form))}>
               <AppstoreAddOutlined />
             </button>
           </div>
@@ -75,7 +78,7 @@ const SkillsPage = () => {
         dataSource={skills}
       />
       <Modal
-        title="Add Skills"
+        title={selected ? "save skill" : "Add Skills"} 
         open={isModalOpen}
         onOk={handleOk}
         onCancel={handleCancel}
