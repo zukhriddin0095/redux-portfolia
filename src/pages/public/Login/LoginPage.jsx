@@ -94,16 +94,21 @@ import { useNavigate } from "react-router-dom";
 import "./login.scss"
 import Cookies from "js-cookie";
 import { TOKEN } from "../../../constants";
+import { useDispatch } from "react-redux";
+import { controlAuthenticated } from "../../../redux-tookit/slices/AuthSlice";
 const LoginPage = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch()
   const [error, setError] = useState(null); 
 
   const onFinish = async (values) => {
+    console.log(values);
     try {
       const {data} = await request.post("auth/login", values);
       if(data.user.role === "admin"){
         message.success("success")
         navigate("/dashboard")
+        dispatch(controlAuthenticated(true));
         Cookies.set(TOKEN, data.token)
       }else {
         message.success("siz Admin emasiz")

@@ -1,11 +1,11 @@
 import axios from "axios";
-import { ENDPOINT } from "../constants";
-// import Cookies from "js-cookie";
+import { ENDPOINT, TOKEN } from "../constants";
+import Cookies from "js-cookie";
 
 export const request = axios.create({
-  baseURL: `${ENDPOINT}api/v1`,
+  baseURL: `${ENDPOINT}api/v1/`,
   timeout: 10000,
-  // headers: {
-  //   Authorization: `Bearer ${Cookies.get(TOKEN)}`
-  // }
+  headers: {
+    Authorization: `Bearer ${Cookies.get(TOKEN)}`
+  }
 });

@@ -1,7 +1,16 @@
 import { useDispatch, useSelector } from "react-redux";
-import { Fragment } from "react";
-import { addSkill, controlModal, deleteSkill, editSkill, showModal } from "../../../redux-tookit/slices/SkillSlice";
-import { Form, Input, Modal, Space, Table } from "antd";
+import { Fragment, useEffect } from "react";
+import {
+  addSkill,
+  controlModal,
+  deleteSkill,
+  editSkill,
+  getSkill,
+  getSkills,
+  putSkill,
+  showModal,
+} from "../../../redux-tookit/slices/SkillSlice";
+import { Form, Input, Modal, Pagination, Space, Table } from "antd";
 import {
   EditFilled,
   DeleteFilled,
@@ -12,7 +21,12 @@ import "./skills.scss";
 const SkillsPage = () => {
   const [form] = Form.useForm();
   const dispatch = useDispatch();
-  const { skills, isModalOpen, selected } = useSelector((state) => state.skill);
+  const { skills, isModalOpen, selected, total, loading, btnLoading } =
+    useSelector((state) => state.skill);
+
+  useEffect(() => {
+    dispatch(getSkills());
+  }, [dispatch]);
 
   const columns = [
     {
@@ -33,13 +47,21 @@ const SkillsPage = () => {
         <Space size="middle">
           <button
             className="edit-btn"
-            onClick={() => dispatch(editSkill({id: row.id, form}))}
+            onClick={async () => {
+              await dispatch(editSkill(row._id));
+              await dispatch(getSkills());
+              let { payload } = await dispatch(getSkill(row._id));
+              form.setFieldsValue(payload);
+            }}
           >
             <EditFilled />
           </button>
           <button
             className="delete-btn"
-            onClick={() => dispatch(deleteSkill(row.id))}
+            onClick={async () => {
+              await dispatch(deleteSkill(row._id));
+              await dispatch(getSkills());
+            }}
           >
             <DeleteFilled />
           </button>
@@ -48,27 +70,33 @@ const SkillsPage = () => {
     },
   ];
 
-
   const handleOk = async () => {
     try {
       let values = await form.validateFields();
-      dispatch(addSkill(values));
+      if (selected === null) {
+        await dispatch(addSkill(values));
+      } else {
+        await dispatch(putSkill({ id: selected, values }));
+      }
       handleCancel();
+      await dispatch(getSkills());
     } catch (error) {
       console.log(error);
     }
   };
   const handleCancel = () => {
-    dispatch(controlModal())
+    dispatch(controlModal());
   };
 
   return (
     <Fragment>
       <Table
+        scroll={{ x: 500 }}
+        loading={loading}
         bordered
         title={() => (
           <div className="outlet">
-            <h1>Skills </h1>
+            <h1>Skills {total}</h1>
             <button onClick={() => dispatch(showModal(form))}>
               <AppstoreAddOutlined />
             </button>
@@ -77,8 +105,10 @@ const SkillsPage = () => {
         columns={columns}
         dataSource={skills}
       />
+      <Pagination />
       <Modal
-        title={selected ? "save skill" : "Add Skills"} 
+        confirmLoading={btnLoading}
+        title={selected ? "save skill" : "Add Skills"}
         open={isModalOpen}
         onOk={handleOk}
         onCancel={handleCancel}

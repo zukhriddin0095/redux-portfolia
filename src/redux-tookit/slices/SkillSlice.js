@@ -1,57 +1,135 @@
-import { createAction, createReducer, nanoid } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { request } from "../../server";
 
 const initialState = {
   skills: [],
   selected: null,
   isModalOpen: false,
+  error: null,
+  total: 0,
+  loading: false,
+  btnLoading: false,
 };
 
-export const getSkills = createAction("skill/getSkills");
-export const showModal = createAction("skill/showModal");
-export const deleteSkill = createAction("skill/deleteSkill");
-export const controlModal = createAction("skill/controlModal");
-export const editSkill = createAction("skill/editSkill");
-export const addSkill = createAction("skill/addSkill", ({ name, percent }) => {
-  return {
-    payload: {
-      name,
-      percent,
-      id: nanoid(),
-    },
-  };
-});
-
-const skillReducer = createReducer(initialState, {
-  [showModal]: (state, { payload }) => {
-    state.isModalOpen = true;
-    payload.resetFields();
-    state.selected = null;
-  },
-  [controlModal]: (state) => {
-    state.isModalOpen = !state.isModalOpen;
-  },
-  [addSkill]: (state, { payload }) => {
-    if (state.selected === null) {
-      state.skills.push(payload);
-    } else {
-      state.skills = state.skills.map((el) => {
-        if (el.id === state.selected) {
-          return payload;
-        } else {
-          return el;
-        }
-      });
+export const getSkills = createAsyncThunk(
+  "skill/getSkills",
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await request.get("skills");
+      return data;
+    } catch (err) {
+      return rejectWithValue(err);
     }
+  }
+);
+export const getSkill = createAsyncThunk(
+  "skill/getSkill",
+  async (action, { rejectWithValue }) => {
+    try {
+      const { data } = await request.get(`skills/${action}`);
+      return data;
+    } catch (err) {
+      return rejectWithValue(err);
+    }
+  }
+);
+
+
+
+export const addSkill = createAsyncThunk(
+  "skill/addSkill",
+  async (action, { rejectWithValue }) => {
+    try {
+      await request.post("skills", action);
+    } catch (err) {
+      return rejectWithValue(err);
+    }
+  }
+);
+
+
+export const deleteSkill = createAsyncThunk(
+  "skill/deleteSkill",
+  async (action, { rejectWithValue }) => {
+    try {
+      await request.delete(`skills/${action}`);
+    } catch (err) {
+      return rejectWithValue(err);
+    }
+  }
+);
+
+export const putSkill = createAsyncThunk(
+  "skill/putSkill",
+  async (action, { rejectWithValue }) => {
+    try {
+      await request.put(`skills/${action.id}`, action.values);
+    } catch (err) {
+      return rejectWithValue(err);
+    }
+  }
+);
+
+const skillSlice = createSlice({
+  name: "skill",
+  initialState,
+  reducers: {
+    showModal(state, { payload }) {
+      state.isModalOpen = true;
+      state.selected = null;
+      payload.resetFields();
+    },
+    controlModal(state) {
+      state.isModalOpen = !state.isModalOpen;
+    },
+  
+    // deleteSkill(state, { payload }) {
+    //   state.skills = state.skills.filter((el) => el.id !== payload);
+    // },
+
+    editSkill(state, { payload }) {
+      state.isModalOpen = true;
+      state.selected = payload;
+    },
   },
-  [deleteSkill]: (state, { payload }) => {
-    state.skills = state.skills.filter((el) => el.id !== payload);
+
+  extraReducers: (builder) => {
+    builder
+      .addCase(getSkills.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getSkills.fulfilled, (state, { payload }) => {
+        state.skills = payload.data;
+        state.total = payload.pagination.total;
+        state.loading = false;
+      })
+      .addCase(getSkills.rejected, (state, { payload }) => {
+        state.error = payload;
+        state.loading = false;
+      })
+      .addCase(addSkill.pending, (state) => {
+        state.btnLoading = true;
+      })
+      .addCase(addSkill.fulfilled, (state) => {
+        state.btnLoading = false;
+      })
+      .addCase(addSkill.rejected, (state) => {
+        state.btnLoading = false;
+      })
+      .addCase(deleteSkill.pending, (state) => {
+        state.btnLoading = true;
+      })
+      .addCase(deleteSkill.fulfilled, (state) => {
+        state.btnLoading = false;
+      })
+      .addCase(deleteSkill.rejected, (state) => {
+        state.btnLoading = false;
+      });
   },
-  [editSkill]: (state, { payload: { id, form } }) => {
-    state.isModalOpen = true;
-    let skill = state.skills.find((el) => el.id === id);
-    state.selected = id;
-    form.setFieldsValue(skill);
-  },
+
 });
 
-export default skillReducer;
+export const { showModal, controlModal, editSkill } =
+  skillSlice.actions;
+
+export default skillSlice.reducer;
